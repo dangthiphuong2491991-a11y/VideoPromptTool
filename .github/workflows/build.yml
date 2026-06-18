@@ -1,0 +1,48 @@
+name: Build and Release
+
+# 推送形如 v1.2.0 的 tag 时，自动打包 Windows exe 并发布 Release。
+# 客户端的“自动更新”会读取最新 Release 里的 exe。
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: 源代码版本
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pyinstaller dashscope ttkbootstrap cryptography
+
+      - name: Build EXE
+        run: pyinstaller --noconfirm VideoPromptTool.spec
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VideoPromptTool
+          path: 源代码版本/dist/VideoPromptTool.exe
+
+      - name: Publish Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: 源代码版本/dist/VideoPromptTool.exe
+          generate_release_notes: true

@@ -1,0 +1,29 @@
+# ===== 绝密：签名私钥，绝对不能上传！=====
+private_key.pem
+**/private_key.pem
+*.key
+
+# ===== 构建产物 =====
+build/
+dist/
+**/build/
+**/dist/
+*.pyc
+__pycache__/
+**/__pycache__/
+
+# ===== 大文件 / 用户分发包（不进仓库）=====
+用户版本/
+用户版本.zip
+*.zip
+
+# ===== 本地配置（含加密后的密钥，也不入库）=====
+config.json
+.video_prompt_tool/
+
+# ===== 编辑器 / 系统 =====
+.vscode/
+.idea/
+*.log
+Thumbs.db
+.DS_Store
