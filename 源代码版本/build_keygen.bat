@@ -14,13 +14,13 @@ pause
 exit /b 1
 
 :build
-echo Installing PyInstaller ...
-%PYCMD% -m pip install pyinstaller
+echo Installing PyInstaller + cryptography ...
+%PYCMD% -m pip install pyinstaller cryptography
 if errorlevel 1 ( echo [ERROR] install failed. & pause & exit /b 1 )
 
 echo.
 echo Building Keygen.exe ...
-%PYCMD% -m PyInstaller --noconfirm --onefile --windowed --name Keygen keygen.py
+%PYCMD% -m PyInstaller --noconfirm --onefile --windowed --collect-all cryptography --name Keygen keygen.py
 if errorlevel 1 ( echo [ERROR] build failed. & pause & exit /b 1 )
 
 echo.
