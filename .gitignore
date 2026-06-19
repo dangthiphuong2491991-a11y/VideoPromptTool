@@ -17,6 +17,10 @@ __pycache__/
 用户版本.zip
 *.zip
 
+# ===== 打包成品（含私钥与 exe，绝不入库）=====
+打包成品/
+*.exe
+
 # ===== 本地配置（含加密后的密钥，也不入库）=====
 config.json
 .video_prompt_tool/
