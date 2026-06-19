@@ -181,8 +181,10 @@ class App:
         self._refresh_theme_btn()
         info = tb.Frame(right)
         info.pack(side="right")
-        self.lic_label = tb.Label(info, text=licensing.expiry_text(expiry),
-                                  font=SMALL_FONT, bootstyle="secondary")
+        self.expiry = expiry
+        lic_text, lic_style = self._license_text(expiry)
+        self.lic_label = tb.Label(info, text=lic_text,
+                                  font=("Microsoft YaHei UI", 9, "bold"), bootstyle=lic_style)
         self.lic_label.pack(anchor="e")
         tb.Label(info, text="v" + APP_VERSION, font=SMALL_FONT,
                  bootstyle="secondary").pack(anchor="e")
@@ -199,9 +201,13 @@ class App:
         self.api_key = tk.StringVar(value=self._load_api_key())
         self.key_entry = tb.Entry(cfgf, textvariable=self.api_key, show="●")
         self.key_entry.grid(row=1, column=1, sticky="we", padx=10, pady=6)
+        key_ctrl = tb.Frame(cfgf)
+        key_ctrl.grid(row=1, column=2, sticky="w", pady=6)
         self.show_key = tk.BooleanVar(value=False)
-        tb.Checkbutton(cfgf, text="显示", variable=self.show_key, command=self._toggle_key,
-                       bootstyle="round-toggle").grid(row=1, column=2, sticky="w", pady=6)
+        tb.Checkbutton(key_ctrl, text="显示", variable=self.show_key, command=self._toggle_key,
+                       bootstyle="round-toggle").pack(side="left")
+        tb.Button(key_ctrl, text="清除密钥", bootstyle="danger-outline",
+                  command=self._clear_api_key, width=8).pack(side="left", padx=(10, 0))
 
         tb.Label(cfgf, text="模型名称").grid(row=2, column=0, sticky="w", pady=6)
         self.model = tk.StringVar(value=self.cfg.get("model", DEFAULT_MODEL))
@@ -281,6 +287,19 @@ class App:
         if updater.is_configured():
             self.root.after(1500, lambda: self._check_update(silent=True))
 
+    # ---------- 授权到期显示 ----------
+    def _license_text(self, expiry):
+        """返回 (显示文字, 颜色样式)。剩余天数会一起显示，临近到期变橙色。"""
+        if expiry is None:
+            return ("未授权", "secondary")
+        if expiry >= datetime.date(2099, 1, 1):
+            return ("✓ 永久授权", "success")
+        days = (expiry - datetime.date.today()).days
+        if days < 0:
+            return ("授权已过期", "danger")
+        style = "warning" if days <= 30 else "success"
+        return ("授权至 {}（剩 {} 天）".format(expiry.isoformat(), days), style)
+
     # ---------- API 密钥（加密存储）----------
     def _load_api_key(self):
         enc = self.cfg.get("api_key_enc")
@@ -288,6 +307,23 @@ class App:
             return secure_store.decrypt_str(enc)
         # 兼容旧版本明文
         return self.cfg.get("api_key", "")
+
+    def _clear_api_key(self):
+        """清除本机保存的 API 密钥（输入框 + 配置文件里的加密密钥）。"""
+        has_saved = bool(self.api_key.get().strip()) or bool(self.cfg.get("api_key_enc")) \
+            or bool(self.cfg.get("api_key"))
+        if not has_saved:
+            messagebox.showinfo("提示", "当前没有已保存的 API 密钥。")
+            return
+        if not messagebox.askyesno("清除密钥",
+                                   "确定要清除本机保存的 API 密钥吗？\n清除后需要重新填写才能生成。"):
+            return
+        self.api_key.set("")
+        self.cfg.pop("api_key_enc", None)
+        self.cfg.pop("api_key", None)
+        save_config(self.cfg)
+        self.status.set("API 密钥已清除")
+        messagebox.showinfo("已清除", "已删除本机保存的 API 密钥。")
 
     # ---------- 主题 ----------
     def _refresh_theme_btn(self):
