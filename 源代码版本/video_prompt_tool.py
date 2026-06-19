@@ -201,19 +201,15 @@ class App:
         self.api_key = tk.StringVar(value=self._load_api_key())
         self.key_entry = tb.Entry(cfgf, textvariable=self.api_key, show="●")
         self.key_entry.grid(row=1, column=1, sticky="we", padx=10, pady=6)
-        key_ctrl = tb.Frame(cfgf)
-        key_ctrl.grid(row=1, column=2, sticky="w", pady=6)
         self.show_key = tk.BooleanVar(value=False)
-        tb.Checkbutton(key_ctrl, text="显示", variable=self.show_key, command=self._toggle_key,
-                       bootstyle="round-toggle").pack(side="left")
-        tb.Button(key_ctrl, text="清除密钥", bootstyle="danger-outline",
-                  command=self._clear_api_key, width=8).pack(side="left", padx=(10, 0))
+        tb.Checkbutton(cfgf, text="显示", variable=self.show_key, command=self._toggle_key,
+                       bootstyle="round-toggle").grid(row=1, column=2, sticky="w", pady=6)
 
         tb.Label(cfgf, text="模型名称").grid(row=2, column=0, sticky="w", pady=6)
         self.model = tk.StringVar(value=self.cfg.get("model", DEFAULT_MODEL))
         tb.Entry(cfgf, textvariable=self.model, width=26).grid(row=2, column=1, sticky="w", padx=10, pady=6)
-        tb.Label(cfgf, text="🔒 密钥已用 Windows 账户级加密(DPAPI)保存", font=SMALL_FONT,
-                 bootstyle="secondary").grid(row=3, column=1, columnspan=2, sticky="w", padx=10)
+        tb.Label(cfgf, text="🔒 密钥用 Windows 加密(DPAPI)存储；填好后点下方「💾 保存设置」，下次启动自动带出，无需再输",
+                 font=SMALL_FONT, bootstyle="secondary").grid(row=3, column=1, columnspan=2, sticky="w", padx=10)
         cfgf.columnconfigure(1, weight=1)
 
         # ---- ② 选择视频 ----
@@ -271,6 +267,8 @@ class App:
                   command=self._save_settings, width=12).pack(side="left")
         tb.Button(act, text="检查更新", bootstyle="secondary-outline",
                   command=lambda: self._check_update(silent=False), width=10).pack(side="left", padx=8)
+        tb.Button(act, text="清除激活", bootstyle="danger-outline",
+                  command=self._clear_activation, width=10).pack(side="left")
         self.status = tk.StringVar(value="就绪")
         tb.Label(act, textvariable=self.status, bootstyle="secondary").pack(side="left", padx=14)
 
@@ -308,22 +306,20 @@ class App:
         # 兼容旧版本明文
         return self.cfg.get("api_key", "")
 
-    def _clear_api_key(self):
-        """清除本机保存的 API 密钥（输入框 + 配置文件里的加密密钥）。"""
-        has_saved = bool(self.api_key.get().strip()) or bool(self.cfg.get("api_key_enc")) \
-            or bool(self.cfg.get("api_key"))
-        if not has_saved:
-            messagebox.showinfo("提示", "当前没有已保存的 API 密钥。")
+    def _clear_activation(self):
+        """清除本机的激活（注销授权），随后返回激活界面重新输入激活码。"""
+        if not messagebox.askyesno(
+                "清除激活",
+                "确定要清除本机的激活吗？\n\n清除后需要重新输入激活码才能使用本软件。\n"
+                "（你填的 API 密钥、模型、提示词等设置会保留，不受影响。）"):
             return
-        if not messagebox.askyesno("清除密钥",
-                                   "确定要清除本机保存的 API 密钥吗？\n清除后需要重新填写才能生成。"):
-            return
-        self.api_key.set("")
-        self.cfg.pop("api_key_enc", None)
-        self.cfg.pop("api_key", None)
+        # 先保存其它设置，避免连带丢失
+        self._collect_settings()
+        self.cfg.pop("activation_code", None)
         save_config(self.cfg)
-        self.status.set("API 密钥已清除")
-        messagebox.showinfo("已清除", "已删除本机保存的 API 密钥。")
+        messagebox.showinfo("已清除激活", "已清除激活信息，现在返回激活界面。")
+        machine_code = licensing.get_machine_code()
+        build_activation(self.root, self.tb, machine_code, self.cfg, expired=False)
 
     # ---------- 主题 ----------
     def _refresh_theme_btn(self):
