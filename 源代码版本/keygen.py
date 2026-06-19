@@ -19,6 +19,7 @@
 """
 
 import os
+import sys
 import datetime
 
 import tkinter as tk
@@ -32,7 +33,16 @@ except ImportError:
 
 import licensing  # 复用机器码规范化 / 激活码编码，保证与主程序格式一致
 
-DEFAULT_KEY_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "private_key.pem")
+
+def _app_dir():
+    """打包成 exe(onefile) 时，__file__ 指向临时解压目录，
+    私钥应放在 exe 旁边，所以这里要用 exe 自身所在目录。"""
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(os.path.abspath(sys.executable))
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+DEFAULT_KEY_PATH = os.path.join(_app_dir(), "private_key.pem")
 
 
 class KeygenApp:
