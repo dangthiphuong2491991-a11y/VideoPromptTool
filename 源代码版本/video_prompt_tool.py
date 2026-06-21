@@ -163,15 +163,14 @@ class App:
         self._texts = []  # 跟随主题重新着色的 Text 列表
 
         root.title("视频提示词反推工具 (Qwen)")
-        root.geometry("880x900")
-        root.minsize(800, 760)
+        root.minsize(880, 560)
 
-        outer = tb.Frame(root, padding=22)
+        outer = tb.Frame(root, padding=(16, 14))
         outer.pack(fill="both", expand=True)
 
         # ---- 标题栏 ----
         header = tb.Frame(outer)
-        header.pack(fill="x", pady=(0, 16))
+        header.pack(fill="x", pady=(0, 10))
         tb.Label(header, text="🎬 视频提示词反推工具", font=TITLE_FONT,
                  bootstyle="primary").pack(side="left")
 
@@ -193,8 +192,8 @@ class App:
                  bootstyle="secondary").pack(anchor="e")
 
         # ---- ① 接口配置 ----
-        cfgf = tb.Labelframe(outer, text="  ① 接口配置  ", padding=16)
-        cfgf.pack(fill="x", pady=8)
+        cfgf = tb.Labelframe(outer, text="  ① 接口配置  ", padding=12)
+        cfgf.pack(fill="x", pady=6)
 
         tb.Label(cfgf, text="API 地址").grid(row=0, column=0, sticky="w", pady=6)
         self.base_url = tk.StringVar(value=self.cfg.get("base_url", DEFAULT_BASE_URL))
@@ -216,8 +215,8 @@ class App:
         cfgf.columnconfigure(1, weight=1)
 
         # ---- ② 选择视频 ----
-        vid = tb.Labelframe(outer, text="  ② 选择视频（本地 ≤100MB，或填 URL）  ", padding=16)
-        vid.pack(fill="x", pady=8)
+        vid = tb.Labelframe(outer, text="  ② 选择视频（本地 ≤100MB，或填 URL）  ", padding=12)
+        vid.pack(fill="x", pady=6)
 
         self.video_path = tk.StringVar()
         tb.Button(vid, text="选择本地视频", bootstyle="secondary-outline",
@@ -234,8 +233,8 @@ class App:
         vid.columnconfigure(1, weight=1)
 
         # ---- ③ 自定义提示词 + 预设 ----
-        pr = tb.Labelframe(outer, text="  ③ 自定义提示词  ", padding=16)
-        pr.pack(fill="both", expand=False, pady=8)
+        pr = tb.Labelframe(outer, text="  ③ 自定义提示词  ", padding=12)
+        pr.pack(fill="both", expand=False, pady=6)
 
         bar = tb.Frame(pr)
         bar.pack(fill="x", pady=(0, 10))
@@ -251,7 +250,7 @@ class App:
         tb.Button(bar, text="恢复默认", bootstyle="secondary-outline",
                   command=self._reset_prompt).pack(side="left", padx=4)
 
-        pf, self.prompt_box = make_scrolled_text(pr, tb, self.style, height=5)
+        pf, self.prompt_box = make_scrolled_text(pr, tb, self.style, height=4)
         pf.pack(fill="both", expand=True)
         self.prompt_box.insert("1.0", self.cfg.get("last_prompt", DEFAULT_PROMPT))
         self._texts.append(self.prompt_box)
@@ -259,7 +258,7 @@ class App:
 
         # ---- ④ 操作 ----
         act = tb.Frame(outer)
-        act.pack(fill="x", pady=12)
+        act.pack(fill="x", pady=8)
         self.gen_btn = tb.Button(act, text="🚀 开始生成", bootstyle="primary",
                                  command=self._on_generate, width=16)
         self.gen_btn.pack(side="left")
@@ -276,17 +275,35 @@ class App:
         tb.Label(act, textvariable=self.status, bootstyle="secondary").pack(side="left", padx=14)
 
         # ---- ⑤ 结果 ----
-        res = tb.Labelframe(outer, text="  ④ 反推结果（可编辑后导出）  ", padding=16)
-        res.pack(fill="both", expand=True, pady=8)
-        rf, self.result_box = make_scrolled_text(res, tb, self.style, height=10)
+        res = tb.Labelframe(outer, text="  ④ 反推结果（可编辑后导出）  ", padding=12)
+        res.pack(fill="both", expand=True, pady=6)
+        rf, self.result_box = make_scrolled_text(res, tb, self.style, height=9)
         rf.pack(fill="both", expand=True)
         self._texts.append(self.result_box)
 
         root.protocol("WM_DELETE_WINDOW", self._on_close)
 
+        # 自适应窗口大小：按内容实际需要来定，但绝不超出屏幕可用区，
+        # 保证“一打开就能看到最底部”。宽度适当放宽，更舒展。
+        self._fit_window_to_screen()
+
         # 启动后台静默检查更新
         if updater.is_configured():
             self.root.after(1500, lambda: self._check_update(silent=True))
+
+    def _fit_window_to_screen(self):
+        root = self.root
+        root.update_idletasks()
+        sw = root.winfo_screenwidth()
+        sh = root.winfo_screenheight()
+        margin_h = 110  # 任务栏 + 标题栏余量
+        need_w = root.winfo_reqwidth()
+        need_h = root.winfo_reqheight()
+        win_w = min(max(need_w + 20, 960), sw - 60)   # 更宽更舒展
+        win_h = min(need_h + 10, sh - margin_h)        # 不超过屏幕
+        x = max(0, (sw - win_w) // 2)
+        y = max(0, (sh - margin_h - win_h) // 2)
+        root.geometry("{}x{}+{}+{}".format(win_w, win_h, x, y))
 
     # ---------- 授权到期显示 ----------
     def _license_text(self, expiry):
