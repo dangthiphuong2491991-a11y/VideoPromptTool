@@ -38,7 +38,7 @@ SMALL_FONT = ("Microsoft YaHei UI", 9)
 THEMES = {"light": "litera", "dark": "darkly"}
 
 DEFAULT_BASE_URL = "https://dashscope.aliyuncs.com/api/v1"
-DEFAULT_MODEL = "qwen3.7-plus"
+DEFAULT_MODEL = "qwen-vl-max-latest"
 DEFAULT_PROMPT = (
     "请仔细观看这段视频，反推出可直接用于 AI 视频生成的提示词(prompt)。"
     "要求尽量详细地描述：画面主体与场景、整体风格与画质、镜头运动与构图、"
@@ -81,8 +81,11 @@ def normalize_sdk_base_url(url):
 def build_video_ref(local_path, online_url):
     if online_url:
         return online_url.strip()
-    p = local_path.strip().replace("\\", "/")
-    return "file://" + p
+    # 直接返回本地【绝对路径】，交给 dashscope SDK 自行识别本地文件并上传。
+    # 不要拼成 file:// 形式：路径里有空格 / # / ? 等字符时，SDK 用 urlparse 解析会在
+    # # 处截断，导致找不到文件，于是把 file://... 原样当网址发出去，
+    # 接口报 400 “The provided URL does not appear to be valid”。
+    return os.path.abspath(local_path.strip())
 
 
 def call_qwen_sdk(base_url, api_key, model, video_ref, fps, prompt):

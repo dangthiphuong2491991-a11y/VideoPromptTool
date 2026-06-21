@@ -9,7 +9,7 @@
   （首次配置由安装脚本/作者填写；公开仓库时自动更新无需令牌。）
 """
 
-APP_VERSION = "1.1.2"
+APP_VERSION = "1.1.3"
 
 # GitHub 仓库（公开仓库，自动更新免令牌）
 GITHUB_OWNER = "dangthiphuong2491991-a11y"
