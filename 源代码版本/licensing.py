@@ -16,7 +16,6 @@
 """
 
 import base64
-import uuid
 import hashlib
 import platform
 import datetime
@@ -48,12 +47,22 @@ def _win_machine_guid():
 
 
 def get_machine_code():
-    """根据本机硬件信息生成稳定的机器码（16 位十六进制，分 4 组显示）。"""
-    parts = [str(uuid.getnode()), platform.machine(), platform.node()]
+    """生成【稳定】的机器码（16 位十六进制，分 4 组显示）。
+
+    只用 Windows 注册表的 MachineGuid —— 它跨重启、换网卡 / 插拔 VPN、
+    改主机名都不会变。
+    ⚠️ 不再使用 uuid.getnode()(MAC 地址) 和 platform.node()(主机名)：
+        多网卡 / 虚拟网卡环境下 getnode() 拿到的 MAC 会变，主机名也可改，
+        都会导致机器码漂移、把已激活用户挡在门外。
+    """
+    parts = []
     if platform.system() == "Windows":
         guid = _win_machine_guid()
         if guid:
-            parts.append(guid)
+            parts.append("winguid:" + guid)
+    if not parts:
+        # 回退：非 Windows 或拿不到 GUID 时（稳定性不如 GUID）
+        parts = [platform.machine(), platform.node()]
     raw = "|".join(parts)
     h = hashlib.sha256(raw.encode("utf-8")).hexdigest().upper()
     code = h[:16]
